@@ -1,0 +1,214 @@
+Ansible Installation
+
+Create 2 or more Machines  and name one as Control Server and others as Remote machines
+Control  Server (RHEL):
+  
+   Controll server set up steps
+
+        vi  /etc/yum/pluginconf.d/subscription-manager.conf  and change enable=0  to disabale redhat subcriptions.
+
+   1  rpm -Uvh https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+   2  yum update
+   3  yum install ansible
+   4  ansible --version
+   5  yum update
+   6  adduser demo_user
+   7  passwd demo_user
+
+      # To give root privileges to ansible user
+   8  visudo
+      demo_user ALL=(ALL)  NOPASSWD:ALL
+
+      # By default in AWS OS images are designed for password less(.pem/.ppk Key based authentication) authentication
+      # SO we have to make it password based authentication for ansible user to communicate.
+   9  vi /etc/ssh/sshd_config
+   
+      passwordAuthentication = yes
+      permitrootlogin yes
+
+   10 service sshd restart
+   11 su – demo_user
+      
+      # Ansible communicates via ssh , so generate SSH keys and ID's and copy them into remote machine.
+   12 ssh-keygen
+   
+   
+EXECUTE REMOTE MACHINE STEPS listed in complete bottom of this page ON ALL REMOTE MACHINES and then continue from step 13
+
+   13  ssh-copy-id demo_user@<private Ip address of remote machine/ DNS>
+         ssh-copy-id demo-user@172.31.90.60
+   14  ssh <private Ip address/ DNS>  
+ 
+       # you should be able to login to remote machine with out password prompt
+   15  cd /etc/ansible/
+   16  ls
+   17  sudo mv hosts hosts.ori
+   18  sudo vi hosts
+
+   	[webserver]
+   	<private Ip address/ DNS> #  pvt dns/ IP  of remote host
+[dev_grp]
+172.31.90.60
+
+   19  ansible webserver -m  ping
+ansible dev_grp -m ping
+      
+   
+
+  ====================================================================== 
+      
+ Remote Machine set up steps  (RHEL)           (Ubuntu)
+ 
+    1  yum update -y                           #apt update
+    2  adduser demo_user                       #apt list --upgradable
+    3  passwd demo_user
+    4  visudo
+
+       Demo_user ALL=(ALL)  NOPASSWD:ALL
+
+    5   vi /etc/ssh/sshd_config
+      
+       passwordAuthentication = yes
+       permitrootlogin yes
+
+    6  service sshd restart 
+	
+  
+
+13/02/019
+==========
+Tasks:
+1.[demo-user@controller ansible]$ sudo cat install_httpd.yml
+---
+- hosts: dev_grp
+  tasks:
+  - name: installing httpd
+    yum:
+      name: httpd
+      state: present
+  - name: start service
+    service:
+          name: httpd
+          state: started
+  - name: copy file
+    copy:
+       src: /etc/ansible/index1.html
+       dest: /var/www/html/index.html
+
+
+
+2.[demo-user@controller ansible]$ sudo cat install_tomcat.yml
+---
+- hosts: dev_grp
+  tasks:
+  - name: installing tomcat
+    yum:
+      name: tomcat
+      state: present
+  - name: start service
+    service:
+          name: tomcat
+          state: started
+  - name: download benefits.war
+    get_url:
+     url: https://www.oracle.com/webfolder/technetwork/tutorials/obe/fmw/wls/12c/03-DeployApps/files/benefits.war
+     dest: /usr/share/tomcat/webapps/benefits.war
+
+
+
+3.[demo-user@controller ansible]$ sudo cat replace_file.yml
+---
+- hosts: all
+  tasks:
+  - name: Ansible replace string example
+    replace:
+      path: /tmp/file1.txt
+      regexp: 'boys'
+      replace: "girls"
+
+14/02/19
+=========
+[demo-user@controller ansible]$ sudo cat play_variable.yml
+---
+- hosts: all
+  #vars:
+    #pkg_name: httpd
+    #pkg_state: present
+  tasks:
+  - name: install {{pkg_name}}
+    yum:
+      name: "{{pkg_name}}"
+      state: "{{pkg_state}}"
+[demo-user@controller ansible]$
+
+
+[demo-user@controller ansible]$ sudo cat hosts
+[dev_grp]
+172.31.90.60
+[dev_grp:vars]
+pkg_name=tomcat
+pkg_state=present
+[demo-user@controller ansible]$
+
+[demo-user@controller ansible]$ ansible-playbook -b -e pkg_name=wget play_variable.yml
+
+
+[demo-user@controller group_vars]$ sudo cat dev_grp.yml
+pkg_name: unzip
+pkg_state: present
+
+
+[demo-user@controller host_vars]$ sudo cat 172.31.90.60.yml
+pkg_name: unzip
+pkg_state: present
+
+
+15/02/2019
+===========
+/etc/ansible/roles/tomcat_role/tasks
+[demo-user@controller tasks]$ sudo cat main.yml
+- import_tasks: install.yml
+- import_tasks: start.yml
+- import_tasks: deploy.yml
+[demo-user@controller tasks]$ sudo cat install.yml
+- name: installing tomcat
+  yum:
+    name: tomcat
+    state: present
+
+[demo-user@controller tasks]$ sudo cat start.yml
+- name: start service
+  service:
+        name: tomcat
+        state: started
+[demo-user@controller tasks]$ sudo cat deploy.yml
+
+- name: download benefits.war
+  get_url:
+    url: https://www.oracle.com/webfolder/technetwork/tutorials/obe/fmw/wls/12c/03-DeployApps/files/benefits.war
+    dest: /usr/share/tomcat/webapps/benefits.war
+
+
+
+/etc/ansible
+
+
+[demo-user@controller ansible]$ sudo cat tomcat.yml
+---
+- hosts: all
+  roles:
+   - tomcat_role
+[demo-user@controller ansible]$ ansible-playbook -b tomcat.yml
+
+[demo-user@controller roles]$ sudo ansible-galaxy init httpd_role
+- httpd_role was created successfully
+this is called role template
+
+go to https://galaxy.ansible.com/
+seach what you want
+ex: orace
+click on java-oracle
+copy the command and paste 
+ansible-galaxy install andrewrothstein.java-oracle
+/etc/ansible/roles
+[demo-user@controller roles]$ ansible-galaxy install andrewrothstein.java-oracle

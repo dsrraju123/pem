@@ -1,0 +1,292 @@
+
+Chef Installation steps on RHEL 
+
+1) yum update -y
+2) yum install wget unzip tree -y
+3) wget https://packages.chef.io/files/stable/chefdk/3.7.23/el/7/chefdk-3.7.23-1.el7.x86_64.rpm
+4) rpm -Uvh chefdk-3.7.23-1.el7.x86_64.rpm
+5) chef --version
+
+
+
+
+
+ 
+
+After chefDk is installed on WS and nodes were ready .
+
+step 1`: Create an organisation on your hosted chef. ( https://manage.chef.io )
+step 2 : Download or copy the starter kit of respective organisation onto your Work Station.
+         after downloadling to your laptop copy chef-starter.zip and .pem onto your workstation machine with below 2 commands on gitbash ( your laptop terminal)
+
+          scp -i < path of pem file on your laptop > < path of chef-starter.zip on your laptop > ec2-user@<public-ip of work station>:< workstation path to be copied> 
+               
+          scp -i < path of pem file on your laptop > < path of pem file on your laptop > ec2-user@<public-ip of work station>:< workstation path to be copied>
+          scp -i git_kp.pem chef-starter.zip git_kp.pem ec2-user@3.94.170.160:/tmp
+	  scp -i git_kp.pem chef-starter.zip git_kp.pem ec2-user@52.87.228.54:/tmp
+step 3 : Unzip starter Kit and you will get a folder " chef-repo"
+
+         unzip chef-starter.zip
+
+step 4 : Move into the folder " chef-repo"  and  execute the below commands
+step 5 : Bootstrap your nodes with chef server .
+         
+         knife bootstrap <private ip of node> --ssh-user <default user> --sudo --identity-file
+          <path of node's pem file on WS >  -N " <node name  " 
+         knife bootstrap 172.31.25.93 --ssh-user ec2-user --sudo --identity-file /tmp/git_kp.pem -N "rhel_node1"
+         knife bootstrap 172.31.34.19 --ssh-user ec2-user --sudo --identity-file /tmp/git_kp.pem -N "rhel_node2"
+step 6 : create a cookbook as below  under " cookbooks " direcory .
+       
+         chef generate cookbook < cookbook name >
+
++-- chef-repo
+¦   +-- cookbooks
+¦   ¦   +-- chefignore
+¦   ¦   +-- mycookbook
+¦   ¦   ¦   +-- Berksfile
+¦   ¦   ¦   +-- CHANGELOG.md
+¦   ¦   ¦   +-- chefignore
+¦   ¦   ¦   +-- LICENSE
+¦   ¦   ¦   +-- metadata.rb
+¦   ¦   ¦   +-- README.md
+¦   ¦   ¦   +-- recipes
+¦   ¦   ¦   ¦   +-- default.rb
+¦   ¦   ¦   ¦  
+
+/opt/chef-repo/cookbooks/httpd_cb/recipes
+
+step 7 : create a recipe  under recipes directory
+             vi < filename.rb>
+
+package "httpd"  do
+  action :install
+end
+service "httpd" do
+  action :start
+end
+
+
+step 8 : upload cookbook 
+
+         knife cookbook upload < your cookbook name > 
+
+step 9 : adding runlist to the nodes .
+
+        knife node run_list add < nodename> 'recipe[<cookbookname>::<recipename>]'
+
+         knife node run_list add mynode1 'recipe[mycookbook::https_install]'
+         knife node run_list add rhel_node1 'recipe[httpd_cb::install_httpd]
+
+step 10 : we need to wait for the convergence to happen , or we can do forced convergence 
+           by executimg " chef-client" command on the nodes.
+
+
+
+package 'tomcat' do
+  action :install
+end
+service 'tomcat' do
+  action :start
+end
+remote_file '/usr/share/tomcat/webapps/benefits.war' do
+  source 'https://www.oracle.com/webfolder/technetwork/tutorials/obe/fmw/wls/12c/03-DeployApps/files/benefits.war'
+  action :create
+end
+
+"recipe[tomcatcookbook::tomcat-install]",
+"recipe[tomcatcookbook::tomcat-start]",
+"recipe[tomcatcookbook::tomcat-deploy]"
+
+scp -i ubuntu_kp.pem chef-starter.zip ubuntu_kp.pem ubuntu@13.57.12.175:/tmp
+
+
+
+
+27/02/2019
+=============
+cookbook_file '/var/www/html/index.html' do
+  source 'index.html'
+    action :create
+end
+
+====================
+1.chef resource to copy a file
+
+/opt/chef-repo/cookbooks/httpd_cb
+[root@Work_Station httpd_cb]# mkdir files
+[root@Work_Station httpd_cb]# ls
+Berksfile  CHANGELOG.md  chefignore  files  LICENSE  metadata.rb  README.md  recipes  spec  test
+[root@Work_Station httpd_cb]# cd files/
+[root@Work_Station files]# pwd
+/opt/chef-repo/cookbooks/httpd_cb/files
+[root@Work_Station files]# vi index.html
+[root@Work_Station files]# cd ..
+[root@Work_Station httpd_cb]# cd recipes/
+[root@Work_Station recipes]# pwd
+/opt/chef-repo/cookbooks/httpd_cb/recipes
+[root@Work_Station recipes]# ls -lrt
+total 8
+-rw-r--r--. 1 root root 99 Feb 26 04:55 default.rb
+-rw-r--r--. 1 root root 81 Feb 26 05:03 install_httpd.rb
+[root@Work_Station recipes]# vi install_httpd.rb
+[root@Work_Station recipes]# cat install_httpd.rb
+package "httpd"  do
+  action :install
+end
+service "httpd" do
+  action :start
+end
+cookbook_file '/var/www/html/index.html' do
+  source 'index.html'
+    action :create
+end
+
+
+========
+  "recipe[newhttpd_cb::insthttpd]",
+   "recipe[newhttpd_cb::servhttpd]",
+   "recipe[newhttpd_cb::deployindex]"
+=========
+
+[root@Work_Station recipes]# knife cookbook upload httpd_cb
+Uploading httpd_cb       [0.1.0]
+Uploaded 1 cookbook.
+=================
+2.chef resource to download a file
+
+[root@Work_Station recipes]# vi newtomcat.rb
+
+
+package "tomcat"  do
+  action :install
+end
+service "tomcat" do
+  action :start
+end
+remote_file '/usr/share/tomcat/webapps/benefits.war' do
+  source 'https://www.oracle.com/webfolder/technetwork/tutorials/obe/fmw/wls/12c/03-DeployApps/files/benefits.war'
+  action :create
+end
+=======
+ "recipe[new_cb::insttomcat]",
+   "recipe[new_cb::servtomcat]",
+   "recipe[new_cb::deploywar]"
+=======
+
+[root@Work_Station recipes]# knife cookbook upload httpd_cb
+[root@Work_Station recipes]#knife node run_list add rhel_node1 'recipe[httpd_cb::newtomcat]
+[root@Node ~]# chef-client
+go to browser , open new tab
+public ip of Node:8080/benefits 
+you can see output
+
+=======================
+3.chef resource replace_or_add
+
+replace_or_add "girls" do
+  path "/tmp/demo.txt"
+  pattern "boys"
+  line "There are 10 boys in class. all boys are good"
+end
+
+
+replace_or_add "girls" do
+  path "/tmp/demo.txt"
+  pattern "boys"
+  line "There are 10 boys in class. all boys are good"
+  replace_only true
+end
+
+[root@Node tmp]# chef-client
+Starting Chef Client, version 14.10.9
+resolving cookbooks for run list: ["httpd_cb::install_httpd", "httpd_cb::newtomcat", "httpd_cb::replacecontent"]
+Synchronizing Cookbooks:
+  - httpd_cb (0.1.0)
+Installing Cookbook Gems:
+Compiling Cookbooks...
+
+================================================================================
+Recipe Compile Error in /var/chef/cache/cookbooks/httpd_cb/recipes/replacecontent.rb
+================================================================================
+
+NoMethodError
+-------------
+undefined method `replace_or_add' for cookbook: httpd_cb, recipe: replacecontent :Chef::Recipe
+
+Cookbook Trace:
+---------------
+  /var/chef/cache/cookbooks/httpd_cb/recipes/replacecontent.rb:1:in `from_file'
+
+Relevant File Content:
+----------------------
+/var/chef/cache/cookbooks/httpd_cb/recipes/replacecontent.rb:
+
+  1>> replace_or_add "girls" do
+  2:    path "/tmp/demo.txt"
+  3:    pattern "boys"
+  4:    line "There are 10 boys in class. all boys are good"
+  5:    replace_only true
+  6:  end
+  7:
+  8:
+
+System Info:
+------------
+chef_version=14.10.9
+platform=redhat
+platform_version=7.6
+ruby=ruby 2.5.3p105 (2018-10-18 revision 65156) [x86_64-linux]
+program_name=/bin/chef-client
+executable=/opt/chef/bin/chef-client
+
+
+Running handlers:
+[2019-02-27T15:59:48+00:00] ERROR: Running exception handlers
+Running handlers complete
+[2019-02-27T15:59:48+00:00] ERROR: Exception handlers complete
+Chef Client failed. 0 resources updated in 01 seconds
+[2019-02-27T15:59:48+00:00] FATAL: Stacktrace dumped to /var/chef/cache/chef-stacktrace.out
+[2019-02-27T15:59:48+00:00] FATAL: Please provide the contents of the stacktrace.out file if you file a bug report
+[2019-02-27T15:59:48+00:00] FATAL: NoMethodError: undefined method `replace_or_add' for cookbook: httpd_cb, recipe: replacecontent :Chef::Recipe
+
+01/03/2019
+==========
+
+
+"devenv": [
+      "recipe[new_cb::insttomcat]",
+      "recipe[new_cb::servtomcat]",
+      "recipe[new_cb::deploywar]"
+    ],
+
+"testenv": [
+      "recipe[new_cb::insttomcat]",
+      "recipe[new_cb::deploywar]"
+    ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

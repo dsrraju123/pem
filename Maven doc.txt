@@ -1,0 +1,75 @@
+install JDK as below
+===============================================
+cd /opt/
+wget --no-cookies --no-check-certificate --header "Cookie: gpw_e24=http%3A%2F%2Fwww.oracle.com%2F; oraclelicense=accept-securebackup-cookie" "https://download.oracle.com/otn-pub/java/jdk/8u201-b09/42970487e3af4f5aa5bca3f542482c60/jdk-8u201-linux-x64.tar.gz"
+tar -xzf jdk-8u201-linux-x64.tar.gz
+
+===================================================
+tar -xzf jdk-8u201-linux-x64.tar.gz
+
+/opt/jdk1.8.0_201/bin
+[root@ip-172-31-84-155 bin]# ./java -version
+[root@ip-172-31-84-155 bin]# echo $PATH
+/usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin
+[root@ip-172-31-84-155 bin]# export PATH=$PATH:/opt/jdk1.8.0_201/bin
+[root@ip-172-31-84-155 bin]# echo $PATH
+/usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/opt/jdk1.8.0_201/bin
+
+
+
+cd /opt/jdk1.8.0_201/
+alternatives --install /usr/bin/java java /opt/jdk1.8.0_201/bin/java 2  =====> 
+alternatives --config java
+
+
+There are 1 programs which provide 'java'.
+
+  Selection    Command
+-----------------------------------------------
+*  1           /opt/cd /opt/jdk1.8.0_201/bin/java
+
+ 
+Enter to keep the current selection[+], or type selection number: 1
+
+
+[root@ip-172-31-84-155 ~]# vi ~/.bash_profile
+
+export JAVA_HOME=/opt/jdk1.8.0_201/   
+
+export PATH=$PATH:/opt/jdk1.8.0_201/bin   
+
+=====> to set the path permanently in bash profile[ vi /root/.bash_profile] here add the export statements 
+source/root/.bash_profile
+
+Install Maven
+============================
+cd /opt
+
+wget http://mirrors.estointernet.in/apache/maven/maven-3/3.6.0/binaries/apache-maven-3.6.0-bin.zip
+
+
+[root@ip-172-31-84-155 opt]# wget https://www-eu.apache.org/dist/maven/maven-3/3.6.0/binaries/apache-maven-3.6.0-bin.zip
+
+export PATH=$PATH:/opt/apache-maven-3.6.0/bin
+
+mvn -v
+
+
+create a  maven project
+=========================================
+cd /opt
+mkdir my_maven_projects
+cd my_maven_projects
+
+mvn archetype:generate -DgroupId=com.mycompany.app -DartifactId=my-app -DarchetypeArtifactId=maven-archetype-quickstart -DinteractiveMode=false
+-----------> to generate a mvn project by using above command, an example provided by maven
+
+cd my-app
+mvn validate
+mvn clean
+mvn compile
+mvn package
+
+ JDK specific errors may occur, check and resolve
+
+=====================================
